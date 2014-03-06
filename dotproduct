@@ -1,0 +1,13 @@
+template<typename A, typename B>
+T dot(vector<A> x, vector<B> y)
+{
+	double dp=0;
+	int i;
+	
+	for (i=0; i<x.size(); i++)
+	{
+		dp+=x[i]*y[i]
+	}
+	
+	return dp;
+}
