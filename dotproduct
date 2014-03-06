@@ -1,7 +1,7 @@
-template<typename A, typename B>
-T dot(vector<A> x, vector<B> y)
+template<typename T>
+float dot(vector<T> x, vector<T> y)
 {
-	double dp=0;
+	float dp=0;
 	int i;
 	
 	for (i=0; i<x.size(); i++)
