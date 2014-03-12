@@ -197,13 +197,13 @@ bool vektor<T>::isValid() (const)
 }
 
 template<typename T, typename U>
-vektor<U> vektor<T>::operator=(const vektor<T>) //&o
+vektor<T>::operator=(const vektor<U>) //&o
 {
-	vektor<U> vec;
+	vektor<T> vec;
 
 	for(auto i=0; i<x.size(); i++)
 	{
-		vec.x[i]=(U)(o.x[i]);
+		vec.x[i]=(T)(o.x[i]);
 	}
 	
 	return(vec);
