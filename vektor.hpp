@@ -1,239 +1,238 @@
 #include <iostream>
 #include <vector>
+//#include "vektor.hpp"
 
 #include <boost/iterator/iterator_facade.hpp>
+
+using namespace std;
 
 #define VEKTOR_NO_ERROR			0
 #define VEKTOR_BAD_DIMENSION	1
 
 template<typename T>
-class vektor;
+class matrix;
 
 template<typename T>
-class vektorIterator
-	: public boost::iterator_facade<vektorIterator<T>, T, boost::random_access_traversal_tag, T&, int>
+class matrix
 {
-	friend class boost::iterator_core_access;
+private:
+	vektor<vektor<T>> mat;
+	unsigned int r;
+	unsigned int c;
 
-	private:
-		vektor<T>	*v;
-		long int	index;
+public:
+	matrix();
+	matrix(const T &v);
+	matrix(const vector<T> &v);
+	matrix(const vector<vector<T>> &v);
 
-		bool equal(const vektorIterator<T> &other) const 
-		{
-			return((this->index == other.index) && (this->v == other.v) );
-		}
+	matrix<T>& 	operator=(const T &o);
+	matrix<T>& 	operator=(const vector<T> &o);
+	matrix<T>& 	operator=(const vector<vector<T>> &o);
+	matrix<T>& 	operator=(const matrix<T> &o);
 
-		void increment() { index++; }
-		void decrement() { index--; }
-		void advance(long int n) { index+= n; }
-		int distance_to(vektorIterator<T> y) const { return(y.index - index); } 
+	bool operator==(vector<vector<T>> o);
 
-		T &dereference() const { return(v->x[index]); }
-		
-	public:
-		vektorIterator() : v(NULL), index(0) {}
-		vektorIterator(vektor<T> *x) : v(x), index(0) {} 
-		vektorIterator(long int i) : v(NULL), index(i) {}
-		vektorIterator(vektor<T> *x, long int i) : v(x), index(i) {}
-		~vektorIterator() {}
+	vector<T>& operator[](unsigned int i);
 
-};
+	matrix<T>	operator+(matrix<T> &o);
+	matrix<T>	operator-(matrix<T> &o);
+	matrix<T>	operator*(T o);
+	matrix<T>	operator*(matrix<T> &o);
 
+	unsigned int	rows() const;
+	unsigned int	columns() const;
+	bool			isValid() const;
 
-template<typename T>
-class vektor 
-{
-	friend class vektorIterator<T>;
-	private:
-		std::vector<T>	x;
-	public:
-		vektor();
-		vektor(const std::vector<T> &v);
-		~vektor();
-		vektor<T>& 	operator=(const std::vector<T> &o);
-		vektor<T>	operator+(const vektor<T> &o);
-		vektor<T>	operator-(const vektor<T> &o);
-		vektor<T>	operator*(const vektor<T> &o);
-		vektor<T>	operator*(const T &a);
-		unsigned int	dimension() const;
-		bool			isValid() const;
+	vektorIterator<T>	begin();
+	vektorIterator<T>	end();
 
-		vektorIterator<T>	begin();
-		vektorIterator<T>	end();
-
-		operator std::vector<T>() const
-		{
-			return x;
-		}
-
-		template<typename U>
-		vektor<T>& operator=(const vektor<U> &r) 
-		{
-			std::vector<U>	v;
-			
-			v = (std::vector<U>)r;
-			x.resize(v.size());
-			for(auto i = 0; i< v.size(); i++) {
-				x[i] = (T)v[i];
-			}
-
-			return(*this);
-		}
-
-	friend std::ostream& operator<<(std::ostream& s, vektor<T> &v) {
+	friend ostream& operator<<(ostream& s, matrix<T> &m)
+	{
 		int	i;
 
-		if(v.x.size() > 0) {
+		if (m.isValid()) 
+		{
 			s << "<";
-			for(i=0; i<v.x.size() -1; i++) {
-				s << v.x[i] << ",";
+
+			for (i = 0; i<(m.rows() - 1); i++) 
+			{
+				for (std::vector<T>::const_iterator it = m[i].begin(); it != m[i].end(); it++)
+				{
+					s << *it << ",";
+				}
 			}
-			s << v.x[i] << ">";
+
+			s << ">";
+			
 			return s;
-		} else {
+		}
+		else 
+		{
 			s << "<NO_SIZE>";
 			return(s);
 		}
 	}
 
-
-	friend vektor<T> operator*(const T &l, const vektor<T> &r)
+	bool isValid()
 	{
-		vektor<T>	z;
-	
-		z.x.resize(r.x.size());
-		for(auto i = 0; i < r.x.size(); i++) {
-			z.x[i] = r.x[i] * l;
-		}
-		return(z);
+		return((r != 0) && (c != 0));
 	}
 
+	void resize(unsigned int x, unsigned int y)
+	{
+		mat.resize(x);
+		c = x;
+		r = y;
+		for (auto i = 0; i < c; i++)
+		{
+			mat[i].resize(y);
+		}
+	}
+
+	bool isSquare()
+	{
+		return (isValid() and(r == c));
+	}
+
+	//INVERSE
 
 };
 
 template<typename T>
-vektor<T>::vektor()
+matrix<T>::matrix()
 {
-	std::cout << "Construct vektor" << std::endl;
-	return;
-}
-
-
-template<typename T>
-vektor<T>::vektor(const std::vector<T> &o)
-{
-	std::cout << "Construct vektor from vector<T>" << std::endl;
-	x = o;
-	return;
+	r=0;
+	c=0;
 }
 
 template<typename T>
-vektor<T>::~vektor()
+matrix<T>::matrix(const T &v)
 {
-	std::cout << "Destruct vektor" << std::endl;
-	return;
+	vector<T> vec;
+	vec.push_back(v);
+	mat={vec};
+	r=1;
+	c=1;
 }
 
 template<typename T>
-vektor<T>& vektor<T>::operator=(const std::vector<T> &o) 
+matrix<T>::matrix(const vector<T> &v)
 {
-	x = o;
-	std::cout << "assign vektor" << std::endl;
-	return(*this);
+	mat={v};
+	r=v.size();
+	c=1;
 }
 
-template <typename T>
-vektor<T>	vektor<T>::operator+(const vektor<T> &o)
+template<typename T>
+matrix<T>::matrix(const vector<vector<T>> &v)
 {
-	vektor<T>	r;
-	std::vector<T>	y;
+	mat = v;
+	r = v[0].size();
+	c = v.size();
+}
 
-	std::cout << "operator+ with x.size() = " << x.size() << std::endl;
-	if(x.size() != o.x.size()) {
-		r.x.resize(0);
-		throw VEKTOR_BAD_DIMENSION;
-		return(r);
+template<typename T>
+bool matrix<T>::operator==(vector<vector<T>> o)
+{
+	matrix<T>t=o;
+	return matrix<T>::operator==(t);
+}
+
+template<typename T>
+vector<T>& matrix<T>::operator[](unsigned int index)
+{
+	return mat[index];
+}
+
+template<typename T>
+matrix<T> matrix<T>::operator+(matrix<T> &o)
+{
+	if ((mat.r == o.r) && (mat.c == o.c))
+	{
+		matrix<T> result;
+		result.resize(r, c);
+
+		for (auto i = 0; i<c; i++)
+		{
+			for (auto j = 0; j<r; j++)
+			{
+				result[i][j] = mat[i][j] + o[i][j];
+			}
+		}
+
+		return result;
 	}
-	y.resize(x.size());
-	for(auto i = 0; i< x.size(); i++) {
-		y[i] = x[i] + o.x[i];
+
+	else
+	{
+		return 0;
 	}
-	r = y;
-	return(r);
-
 }
 
 template<typename T>
-vektor<T>	vektor<T>::operator-(const vektor<T> &o)
+matrix<T> matrix<T>::operator-(matrix<T> &o)
 {
-	vektor<T>	r;
+	if (mat.size() == o.size())
+	{
+		matrix<T> result;
+		result.resize(r, c);
 
-	if(x.size() != o.x.size()) {
-		r.x.resize(0);
-		return(r);
+		for (auto i = 0; i<c; i++)
+		{
+			for (auto j = 0; j<r; j++)
+			{
+				result[i][j] = mat[i][j] - o[i][j];
+			}
+		}
+
+		return result;
 	}
-	r.x.resize(x.size());
-	for(auto i = 0; i < x.size(); i++) {
-		r.x[i] = x[i] - o.x[i];
+
+	else
+	{
+		return 0;
 	}
-	return(r);
 }
 
 template<typename T>
-vektor<T> vektor<T>::operator*(const vektor<T> &o)
+matrix<T> matrix<T>::operator*(T o)
 {
-	vektor<T>	r;
-	T 			p = 0;
+	matrix<T> result;
+	result.resize(r, c);
 
-	std::cout << "operator* with x.size() = " << x.size() << std::endl;
-	if(x.size() != o.x.size()) {
-		r.x.resize(0);
-		return(r);
+	for (auto i = 0; i < c; i++)
+	{
+		for (auto j = 0; j < r; j++)
+		{
+			result[i][j] = mat[i][j] * o;
+		}
 	}
-	for(auto i = 0; i < x.size(); i++) {
-		p += x[i] * o.x[i];
+
+	return result;
+}
+
+template<typename T>
+matrix<T> matrix<T>::operator*(matrix<T> &o)
+{
+	matrix<T> result;
+	result.resize(r, o.c);
+
+	for (auto i = 0; i < o.c; i++)
+	{
+		for (auto j = 0; j < r; j++)
+		{
+			vector<T> A = o.mat[i];
+			vector<T> B;
+
+			for (auto x = 0; x < this->mat.r; x++)
+			{
+				B.push_back(this->mat[x][j]);
+			}
+
+			result.mat[i][j] += A*B;
+		}
 	}
-	r = {p};
-	return(r);
-	
-}
 
-template<typename T>
-vektor<T> vektor<T>::operator*(const T &a)
-{
-	vektor<T>	r;
-
-	r.x.resize(x.size());
-	for(auto i = 0; i < x.size(); i++) {
-		r.x[i] = x[i] * a;
-	}
-	return(r);
-}
-
-template<typename T>
-unsigned int vektor<T>::dimension() const
-{
-	return(x.size());
-}
-
-template<typename T>
-bool	vektor<T>::isValid() const 
-{
-	if(x.size() == 0) return false;
-	return(true);
-}
-
-template<typename T>
-vektorIterator<T>	vektor<T>::begin() 
-{
-	vektorIterator<T>	iter(this, 0);
-	return(iter);
-}
-
-template<typename T>
-vektorIterator<T>	vektor<T>::end()
-{
-	vektorIterator<T>	iter(this, this->x.size());
-	return(iter);
+	return result;
 }
