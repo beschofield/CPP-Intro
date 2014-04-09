@@ -1,10 +1,50 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/iterator/iterator_facade.hpp>
+
+#define VEKTOR_NO_ERROR			0
+#define VEKTOR_BAD_DIMENSION	1
+
+template<typename T>
+class vektor;
+
+template<typename T>
+class vektorIterator
+	: public boost::iterator_facade<vektorIterator<T>, T, boost::random_access_traversal_tag, T&, int>
+{
+	friend class boost::iterator_core_access;
+
+	private:
+		vektor<T>	*v;
+		long int	index;
+
+		bool equal(const vektorIterator<T> &other) const 
+		{
+			return((this->index == other.index) && (this->v == other.v) );
+		}
+
+		void increment() { index++; }
+		void decrement() { index--; }
+		void advance(long int n) { index+= n; }
+		int distance_to(vektorIterator<T> y) const { return(y.index - index); } 
+
+		T &dereference() const { return(v->x[index]); }
+		
+	public:
+		vektorIterator() : v(NULL), index(0) {}
+		vektorIterator(vektor<T> *x) : v(x), index(0) {} 
+		vektorIterator(long int i) : v(NULL), index(i) {}
+		vektorIterator(vektor<T> *x, long int i) : v(x), index(i) {}
+		~vektorIterator() {}
+
+};
+
 
 template<typename T>
 class vektor 
 {
+	friend class vektorIterator<T>;
 	private:
 		std::vector<T>	x;
 	public:
@@ -19,9 +59,12 @@ class vektor
 		unsigned int	dimension() const;
 		bool			isValid() const;
 
+		vektorIterator<T>	begin();
+		vektorIterator<T>	end();
+
 		operator std::vector<T>() const
 		{
-			return(x);
+			return x;
 		}
 
 		template<typename U>
@@ -32,7 +75,7 @@ class vektor
 			v = (std::vector<U>)r;
 			x.resize(v.size());
 			for(auto i = 0; i< v.size(); i++) {
-				x[i] = v[i];
+				x[i] = (T)v[i];
 			}
 
 			return(*this);
@@ -54,13 +97,14 @@ class vektor
 		}
 	}
 
-	friend vektor<T> operator*(const T &r, const vektor<T> &l)
+
+	friend vektor<T> operator*(const T &l, const vektor<T> &r)
 	{
 		vektor<T>	z;
 	
-		z.x.resize(l.x.size());
-		for(auto i = 0; i < l.x.size(); i++) {
-			z.x[i] = l.x[i] * r;
+		z.x.resize(r.x.size());
+		for(auto i = 0; i < r.x.size(); i++) {
+			z.x[i] = r.x[i] * l;
 		}
 		return(z);
 	}
@@ -108,6 +152,7 @@ vektor<T>	vektor<T>::operator+(const vektor<T> &o)
 	std::cout << "operator+ with x.size() = " << x.size() << std::endl;
 	if(x.size() != o.x.size()) {
 		r.x.resize(0);
+		throw VEKTOR_BAD_DIMENSION;
 		return(r);
 	}
 	y.resize(x.size());
@@ -120,92 +165,75 @@ vektor<T>	vektor<T>::operator+(const vektor<T> &o)
 }
 
 template<typename T>
-vektor<T> vektor<T>::operator-(const vektor<T> &o)
+vektor<T>	vektor<T>::operator-(const vektor<T> &o)
 {
-	vektor<T> vec;
-	
-	if(x.size() != o.x.size()) 
-	{
-		cout << "different sizes";
-		return(vec);
-	}
-	
-	vec.x.resize(x.size());
-	
-	for(auto i=0; i<x.size(); i++)
-	{
-		vec.x[i]=x[i]-o.x[i]
-	}
+	vektor<T>	r;
 
-	return(vec);
+	if(x.size() != o.x.size()) {
+		r.x.resize(0);
+		return(r);
+	}
+	r.x.resize(x.size());
+	for(auto i = 0; i < x.size(); i++) {
+		r.x[i] = x[i] - o.x[i];
+	}
+	return(r);
 }
 
 template<typename T>
 vektor<T> vektor<T>::operator*(const vektor<T> &o)
 {
-	vektor<T> vec;
+	vektor<T>	r;
+	T 			p = 0;
 
-	if(x.size() != o.x.size()) 
-	{
-		cout << "different sizes";
-		return(vec);
+	std::cout << "operator* with x.size() = " << x.size() << std::endl;
+	if(x.size() != o.x.size()) {
+		r.x.resize(0);
+		return(r);
 	}
-	
-	T trans=0;
-	
-	for(auto i=0; i<x.size(); i++) 
-	{
-		trans += x[i] * o.x[i];
+	for(auto i = 0; i < x.size(); i++) {
+		p += x[i] * o.x[i];
 	}
+	r = {p};
+	return(r);
 	
-	vec={trans};
-	return(vec);
 }
 
 template<typename T>
 vektor<T> vektor<T>::operator*(const T &a)
 {
-	vektor<T> vec;
-	vec.x.resize(x.size());
-	
-	for(auto i=0; i<x.size(); i++) 
-	{
-		vec.x[i] = x[i] * a;
+	vektor<T>	r;
+
+	r.x.resize(x.size());
+	for(auto i = 0; i < x.size(); i++) {
+		r.x[i] = x[i] * a;
 	}
-	
-	return(vec);
+	return(r);
 }
 
 template<typename T>
-int vektor<T>::dimension() (const)
+unsigned int vektor<T>::dimension() const
 {
 	return(x.size());
 }
 
 template<typename T>
-bool vektor<T>::isValid() (const) 
+bool	vektor<T>::isValid() const 
 {
-	if(x.size()==0)
-	{
-		return false;
-	}
-	
-	else
-	{
-		return true;
-	}
+	if(x.size() == 0) return false;
+	return(true);
 }
 
-template<typename T, typename U>
-vektor<T>::operator=(const vektor<U>) //&o
+template<typename T>
+vektorIterator<T>	vektor<T>::begin() 
 {
-	vektor<T> vec;
-
-	for(auto i=0; i<x.size(); i++)
-	{
-		vec.x[i]=(T)(o.x[i]);
-	}
-	
-	return(vec);
+	vektorIterator<T>	iter(this, 0);
+	return(iter);
 }
 
+template<typename T>
+vektorIterator<T>	vektor<T>::end()
+{
+	vektorIterator<T>	iter(this, this->x.size());
+	return(iter);
+}
